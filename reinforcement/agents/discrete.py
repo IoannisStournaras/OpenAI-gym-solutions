@@ -1,10 +1,13 @@
+import logging
+from datetime import datetime
 from typing import Union
 from pathlib import Path
 
 import gym
-import logging
 import numpy as np
 from tqdm import tqdm
+
+from reinforcement.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +20,8 @@ class DiscreteAgent:
         discount_factor: float = 0.99,
         env_name: str = 'FrozenLake8x8-v1',
         method: str = 'q_learning',
-        init_value: int = 0
+        init_value: int = 0,
+        output_dir: Union[Path, str] = None,
     ):
         if not (0 <= epsilon <= 1):
             raise ValueError('Epsilon must be in the range [0, 1]')
@@ -38,6 +42,15 @@ class DiscreteAgent:
 
         if init_value:
             self.q_table[:] = init_value
+
+        if isinstance(output_dir, str):
+            output_dir = Path(output_dir)
+
+        self.pretrained_dir = (
+            output_dir
+            or Settings.DATA_PATH.joinpath('pretrained', 'discrete')
+        )
+        self.pretrained_dir.mkdir(exist_ok=True, parents=True)
 
     def act(self, state: int, epsilon: float = None) -> int:
         if epsilon is None:
@@ -81,10 +94,7 @@ class DiscreteAgent:
         self.q_table = np.zeros((self.env.observation_space.n, self.env.action_space.n))
         return init_state
 
-    def train(self, n_episodes: int,
-        output_path: Union[Path, str] = None,
-    ):
-
+    def train(self, n_episodes: int):
         logger.info('Starting training process with {method}')
         goals = 0
         holes = 0
@@ -125,8 +135,8 @@ class DiscreteAgent:
                 logger.info(f'Episode {episode} Total Reward {goals}')
                 logger.info(f'Training Average reward per episode {goals / episode}')
 
-        if output_path:
-            self.save(output_path)
+        filename = datetime.today().strftime(f'FrozeLake_{self.method}_%Y-%m-%dT%Hh%Mm%Ss.npz')
+        self.save(filename)
 
         return goals, holes
 
@@ -143,10 +153,12 @@ class DiscreteAgent:
             steps += 1
         return result, steps
 
-    def save(self, path: Union[Path, str]):
-        with open(path, 'wb') as f:
+    def save(self, filename: Union[Path, str]):
+        filename = self.pretrained_dir / filename
+        with open(filename, 'wb') as f:
             np.save(f, self.q_table)
 
-    def load(self, path: Union[Path, str]):
-        with open(path, 'rb') as f:
+    def load(self, filename: Union[Path, str]):
+        filename = self.pretrained_dir / filename
+        with open(filename, 'rb') as f:
             self.q_table = np.load(f)
