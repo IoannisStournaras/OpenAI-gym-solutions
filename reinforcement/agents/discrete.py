@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 class DiscreteAgent:
     def __init__(
         self,
-        learning_rate: float,
-        epsilon: float,
+        learning_rate: float = 0.1,
+        epsilon: float = 0.2,
         discount_factor: float = 0.99,
         env_name: str = 'FrozenLake8x8-v1',
         method: str = 'q_learning',
@@ -48,7 +48,7 @@ class DiscreteAgent:
 
         self.pretrained_dir = (
             output_dir
-            or Settings.DATA_PATH.joinpath('pretrained', 'discrete')
+            or Settings.DATA_DIR.joinpath('pretrained', 'discrete')
         )
         self.pretrained_dir.mkdir(exist_ok=True, parents=True)
 
@@ -140,12 +140,14 @@ class DiscreteAgent:
 
         return goals, holes
 
-    def play(self):
+    def play(self, render: bool = True):
         steps = 0
         status = False
         current_state = self.env.reset()
         result = 'Steps Exceeded'
         while status is False:
+            if render:
+                self.env.render()
             action = self.act(state=current_state, epsilon=0)
             current_state, reward, status, _ = self.env.step(action)
             if status:
