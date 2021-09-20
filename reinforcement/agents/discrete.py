@@ -16,6 +16,7 @@ class DiscreteAgent:
         epsilon: float,
         discount_factor: float = 0.99,
         env_name: str = 'FrozenLake8x8-v1',
+        method: str = 'q_learning',
         init_value: int = 0
     ):
         if not (0 <= epsilon <= 1):
@@ -24,10 +25,14 @@ class DiscreteAgent:
         if not (0 <= discount_factor <= 1):
             raise ValueError('Epsilon must be in the range [0, 1)')
 
+        if method.lower() not in ['q_learning', 'sarsa']:
+            raise ValueError('Method must be one of q_learning/sarsa')
+
         self.epsilon = epsilon
         self.gamma = discount_factor
         self.alpha = learning_rate
         self.init_value = init_value
+        self.method = method
         self.env = gym.make(env_name)
         self.q_table = np.zeros((self.env.observation_space.n, self.env.action_space.n))
 
@@ -76,14 +81,9 @@ class DiscreteAgent:
         self.q_table = np.zeros((self.env.observation_space.n, self.env.action_space.n))
         return init_state
 
-    def train(
-        self,
-        n_episodes: int,
-        method: str = 'q_learning',
+    def train(self, n_episodes: int,
         output_path: Union[Path, str] = None,
     ):
-        if method.lower() not in ['q_learning', 'sarsa']:
-            raise ValueError('Method must be one of q_learning/sarsa')
 
         logger.info('Starting training process with {method}')
         goals = 0
@@ -102,12 +102,12 @@ class DiscreteAgent:
                     reward=reward,
                     next_state=next_state,
                     status=status,
-                    epsilon=0 if method == 'q_learning' else self.epsilon
+                    epsilon=0 if self.method == 'q_learning' else self.epsilon
                 )
 
                 current_state = next_state
                 action = (
-                    next_action if method == 'sarsa'
+                    next_action if self.method == 'sarsa'
                     else self.act(state=next_state, epsilon=self.epsilon)
                 )
                 steps += 1
@@ -122,11 +122,12 @@ class DiscreteAgent:
                     logger.info(f'Episode {episode} resulted in {result} in {steps} steps')
 
             if episode % 500 == 0:
-                print(f'Episode {episode} Total Reward {goals}')
-                print(f'Training Average reward per episode {goals / episode}')
+                logger.info(f'Episode {episode} Total Reward {goals}')
+                logger.info(f'Training Average reward per episode {goals / episode}')
 
         if output_path:
             self.save(output_path)
+
         return goals, holes
 
     def play(self):
