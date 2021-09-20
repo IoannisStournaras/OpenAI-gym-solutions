@@ -253,7 +253,7 @@ class CarRacingAgent:
 
         self.env.close()
 
-    def play(self, render: bool = True):
+    def play(self, render: bool = True) -> Tuple[float, int]:
         stored_epsilon = self.epsilon
         self.epsilon = 0
         total_reward = 0

@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Union
+from typing import Union, Tuple
 from pathlib import Path
 
 import gym
@@ -94,11 +94,11 @@ class DiscreteAgent:
         self.q_table = np.zeros((self.env.observation_space.n, self.env.action_space.n))
         return init_state
 
-    def train(self, n_episodes: int):
+    def train(self, episodes: int):
         logger.info('Starting training process with {method}')
         goals = 0
-        holes = 0
-        for episode in tqdm(range(1, n_episodes+1), unit='Episode'):
+        total_goals = 0
+        for episode in tqdm(range(1, episodes+1), unit='Episode'):
             status = False
             current_state = self.env.reset()
             action = self.act(state=current_state, epsilon=self.epsilon)
@@ -123,24 +123,19 @@ class DiscreteAgent:
                 steps += 1
 
                 if status:
-                    # Evaluating training
-                    result = 'Goal' if reward == 1 else 'Hole'
                     if reward == 1:
                         goals += 1
-                    elif reward == 0:
-                        holes += 1
-                    logger.info(f'Episode {episode} resulted in {result} in {steps} steps')
+                        total_goals+=1
 
             if episode % 500 == 0:
-                logger.info(f'Episode {episode} Total Reward {goals}')
-                logger.info(f'Training Average reward per episode {goals / episode}')
+                logger.info(f'Episodes {episode-500}-{episode} Total Reward {goals}')
+                logger.info(f'Average reward per episode {goals / episode}')
 
         filename = datetime.today().strftime(f'FrozeLake_{self.method}_%Y-%m-%dT%Hh%Mm%Ss.npz')
         self.save(filename)
+        logger.info(f'Total Goals: {total_goals} in {episodes}')
 
-        return goals, holes
-
-    def play(self, render: bool = True):
+    def play(self, render: bool = True) -> Tuple[int, int]:
         steps = 0
         status = False
         current_state = self.env.reset()

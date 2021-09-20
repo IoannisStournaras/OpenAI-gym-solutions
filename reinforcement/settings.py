@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import glob
 from datetime import datetime
 from pathlib import Path
 
@@ -32,7 +33,7 @@ class _Settings:
     @property
     def DATA_DIR(self) -> Path:
         path = Path(
-            self._get_value('DATA_PATH', silent=True)
+            self._get_value('DATA_DIR', silent=True)
             or str(self.default)
         )
         return self.create(path)
@@ -45,6 +46,8 @@ class _Settings:
         )
         return self.create(path)
 
+
+Settings = _Settings()
 
 def configure_logger(level: str = 'INFO', verbose: bool = True, logfile: Path = None):
     logger = logging.getLogger()
@@ -71,6 +74,13 @@ def prepare_options():
     def check_filename(file: str):
         if file.split('.')[-1] not in ['pth', 'npz']:
             raise RuntimeError('Filename must be either of type .npz or .pth')
+        return file
+
+    def get_pretrained_models():
+        pretrained_models = glob.glob(str(Settings.DATA_DIR / 'pretrained') + '/**/*.npz')
+        pretrained_models += glob.glob(str(Settings.DATA_DIR / 'pretrained') + '/**/*.pth')
+        pretrained_models = list(map(lambda x: x.split('/')[-1], pretrained_models))
+        return pretrained_models
 
     parser = argparse.ArgumentParser(
         prog='Reinforcement',
@@ -103,42 +113,42 @@ def prepare_options():
         '--stackframes', nargs="?", default=4, type=int,
         help='Defines the number of frames to stack on continuous Image Agents',
     )
-    parser_continuous.add_argument(
-        "--render", default=False, action='store_true',
-        help='Use this option to activate rendering continuous environments'
-    )
 
     # Common arguments for both Agents
-    parser.add_argument(
-        'command', type=str.lower, choices=['train', 'play'],
-        help='Specifies which action to perform for an Agent Train/Play'
-    )
-    parser.add_argument(
-        '-e', dest='episodes', nargs="?", default=100, type=int,
-        help='Specifies number of episodes for the Agent to train'
-    )
-    parser.add_argument(
-        "-d", dest='discount_factor', type=float, default=0.99,
-        help="Determines how much the agents cares about immediate vs future rewards"
-    )
-    parser.add_argument(
-        "-l", dest='learning_rate', nargs="?", default=0.1, type=float,
-        help="Determines the step size at each iteration while minimizing a loss function"
-    )
-    parser.add_argument(
-        '--epsilon', nargs="?", default=0.1, type=float,
-        help="Used to select action from the Q values. Exploration vs Exploitation"
-    )
-    parser.add_argument(
-        '--pretrained', nargs="?", default=None, type=check_filename,
-        help="Used to select action from the Q values. Exploration vs Exploitation"
-    )
-    parser.add_argument(
-        '--loglevel', nargs="?", default='INFO', type=str.upper, help='Defines Log Level',
-        choices=logging._nameToLevel.keys(),
-    )
+    for pars in [parser_continuous, parser_discrete]:
+        pars.add_argument(
+            'command', type=str.lower, choices=['train', 'play'],
+            help='Specifies which action to perform for an Agent Train/Play'
+        )
+        pars.add_argument(
+            '-e', dest='episodes', nargs="?", default=100, type=int,
+            help='Specifies number of episodes for the Agent to train'
+        )
+        pars.add_argument(
+            "-d", dest='discount_factor', type=float, default=0.99,
+            help="Determines how much the agents cares about immediate vs future rewards"
+        )
+        pars.add_argument(
+            "-l", dest='learning_rate', nargs="?", default=0.1, type=float,
+            help="Determines the step size at each iteration while minimizing a loss function"
+        )
+        pars.add_argument(
+            '--epsilon', nargs="?", default=0.1, type=float,
+            help="Used to select action from the Q values. Exploration vs Exploitation"
+        )
+        pars.add_argument(
+            '--pretrained', nargs="?", default=None, type=check_filename,
+            choices=get_pretrained_models(),
+            help="Used to select action from the Q values. Exploration vs Exploitation"
+        )
+        pars.add_argument(
+            "--render", default=False, action='store_true',
+            help='Use this option to activate rendering environments'
+        )
+        pars.add_argument(
+            '--loglevel', nargs="?", default='INFO', type=str.upper,
+            choices=logging._nameToLevel.keys(), help='Defines Log Level'
+        )
 
     return parser.parse_args()
 
-
-Settings = _Settings()
