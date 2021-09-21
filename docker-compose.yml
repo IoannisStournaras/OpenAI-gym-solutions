@@ -1,63 +1,36 @@
 ---
 version: '3'
-x-reinforcement:
+x-reinforcement: &reinforcement-common-build
+  image: reinforcement
   build:
-    &reinforcement-common-build
     context: .
     dockerfile: Dockerfile
-  image: reinforcement
-  environment: &reinforcement-common-env
+  environment:
     DISPLAY: $DISPLAY
     QT_X11_NO_MITSHM: 1
     DATA_DIR: /data/
-  volumes: &reinforcement-common-vols
+  volumes:
     - ./logs:/data/logs
     - ./pretrained:/data/pretrained
     - /tmp/.X11-unix/:/tmp/.X11-unix/
 
 services:
   custom:
-    build:
-      *reinforcement-common-build
+    <<: *reinforcement-common-build
     container_name: reinforcement-custom
-    volumes:
-      *reinforcement-common-vols
-    environment:
-      *reinforcement-common-env
   discrete-play-q:
-    build:
-      *reinforcement-common-build
+    <<: *reinforcement-common-build
     container_name: reinforcement-discrete-play-q
-    volumes:
-      *reinforcement-common-vols
-    environment:
-      *reinforcement-common-env
     command: python3 reinforcement/main.py discrete play --render --pretrained FrozenLake_q_learning.npz
   discrete-play-sarsa:
-    build:
-      *reinforcement-common-build
+    <<: *reinforcement-common-build
     container_name: reinforcement-discrete-play-sarsa
-    volumes:
-      *reinforcement-common-vols
-    environment:
-      *reinforcement-common-env
     command: python3 reinforcement/main.py discrete play --render --pretrained FrozenLake_sarsa.npz
   continuous-play-simple:
-    build:
-      *reinforcement-common-build
+    <<: *reinforcement-common-build
     container_name: reinforcement-continuous-play-simple
-    volumes:
-      *reinforcement-common-vols
-    environment:
-      *reinforcement-common-env
     command: python3 reinforcement/main.py continuous play --render --pretrained CarRacing_Simple.pth
   continuous-play-complex:
-    build:
-      *reinforcement-common-build
-    volumes:
-      *reinforcement-common-vols
-    environment:
-      *reinforcement-common-env
+    <<: *reinforcement-common-build
     command: python3 reinforcement/main.py continuous play --render --pretrained CarRacing_Complex.pth
-
 
