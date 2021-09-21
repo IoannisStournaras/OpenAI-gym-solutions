@@ -15,7 +15,7 @@ def get_agent(args) -> AgentType:
     if args.agent == 'continuous':
         agent = CarRacingAgent(
             action_space=args.method,
-            n_stacked_frames=args.stacked_frames,
+            n_stacked_frames=args.stackframes,
             epsilon=args.epsilon,
             learning_rate=args.learning_rate,
             discount_factor=args.discount_factor
@@ -27,8 +27,6 @@ def get_agent(args) -> AgentType:
             epsilon=args.epsilon,
             learning_rate=args.learning_rate,
         )
-    else:
-        raise RuntimeError
 
     if args.pretrained:
         agent.load(args.pretrained)
@@ -39,10 +37,9 @@ def get_agent(args) -> AgentType:
 def start():
     try:
         args = prepare_options()
-        print(args.pretrained)
         logfile = datetime.today().strftime('%Y-%m-%dT%Hh%Mm%Ss.log')
         configure_logger(args.loglevel, logfile=Settings.LOG_DIR.joinpath(logfile))
-        print(args)
+
         agent = get_agent(args)
         if args.command == 'train':
             logger.info('Starting Training Process')
@@ -52,8 +49,6 @@ def start():
                 logger.warning('No Pretrained Model specified. Play will use Random Weights')
             reward, steps = agent.play(render=args.render)
             logger.info(f'Reward {reward}, Steps: {steps}')
-        else:
-            raise RuntimeError
 
     except Exception as error:
         logger.error(error)
