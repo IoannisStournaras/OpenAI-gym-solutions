@@ -24,7 +24,7 @@ VOLUME /data/
 
 ENV USER ${UNAME}
 ENV PATH $PATH:/app/.local/bin
-#USER ${UNAME}
+USER ${UNAME}
 
 COPY requirements.txt ./
 RUN python3 -m pip install --user -r requirements.txt
